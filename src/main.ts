@@ -1,47 +1,29 @@
-import { NestApplication, NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
-import { MyExceptionFilter } from './common/filters/myexception.filter';
-import {
-  appLogger,
-  configureAppLogger,
-  getSafeErrorLogFields,
-} from './common/logger/app-logger';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import metadata from './metadata';
+import { AppModule } from './app.module';
 
-async function bootstrap() {
-  configureAppLogger();
-  const app = await NestFactory.create<NestApplication>(AppModule);
-  app.useGlobalPipes(new ValidationPipe()); // Habilita a validação de dados (DTO)
-  app.useGlobalFilters(new MyExceptionFilter());
-  
-  // Configuração do Swagger (Documentação da API automáticamente)
-  const config = new DocumentBuilder()
-    .setTitle('API worker-nestjs-teste')
-    .setDescription('API de gerenciamento do projeto worker-nestjs-teste')
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe());
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Session Management API')
     .setVersion('1.0')
-    .addTag('worker-nestjs-teste')
     .build();
+  SwaggerModule.setup('/v1/docs/swagger', app, () =>
+    SwaggerModule.createDocument(app, swaggerConfig),
+  );
 
-  // Carrega os metadados do plugin do Swagger (também gerado automáticamente pelo Script swc -b --check-type )
-  await SwaggerModule.loadPluginMetadata(metadata);
+  const port = Number(process.env.PORT ?? 3000);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('PORT must be an integer between 1 and 65535');
+  }
 
-  // Cria a documentação da API na rota /v1/docs/swagger
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('/v1/docs/swagger', app, documentFactory);  
-
-  // Pega a porta via variável de ambiente ou usa a porta 3000
-  const configService: ConfigService = app.get(ConfigService);
-  const port = configService.get('PORT') || 3000;
-  await app.listen(port).then(() => {
-    appLogger.info('Servidor iniciado', { port });
-  });
+  await app.listen(port);
 }
-bootstrap().catch((error: unknown) => {
-  appLogger.fatal('Falha ao iniciar servidor', {
-    ...getSafeErrorLogFields(error),
-  });
+
+bootstrap().catch(() => {
+  Logger.error('Application startup failed');
   process.exit(1);
 });

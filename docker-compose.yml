@@ -2,7 +2,7 @@ version: '3'
 services:
   app:
     restart: always
-    container_name: worker-nestjs-teste
+    container_name: session-management-api
     build: 
         context: .
         dockerfile: Dockerfile

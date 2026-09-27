@@ -1,6 +1,5 @@
-# Nome do projeto: worker-nestjs-teste
+# Session Management API
 
 ## Descrição
 
-Projeto gerado via scaffolding para NestJS.
-
+API NestJS em preparação para gerenciamento de sessões.
