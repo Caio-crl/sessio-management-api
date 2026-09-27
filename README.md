@@ -4,18 +4,41 @@
 
 API NestJS em preparação para gerenciamento de sessões.
 
-## Persistência
+## MySQL local e testes
 
-Configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` no ambiente
-antes de iniciar a aplicação ou executar migrations. `.env.example` contém apenas
-nomes e exemplos não sensíveis; a aplicação não carrega arquivos `.env`
-automaticamente.
+Instale as dependências com `npm ci` e configure as variáveis de `.env.example`
+no ambiente. A aplicação não carrega arquivos `.env` automaticamente. Use uma
+senha local própria em `DB_PASSWORD` e um segredo aleatório de pelo menos 32
+bytes em `JWT_ACCESS_SECRET`; não versione esses valores. O Compose usa
+`DB_NAME=session_management_e2e` e `DB_PORT=3307` por padrão, publica MySQL
+somente em `127.0.0.1` e exige `DB_PASSWORD`. O banco E2E é descartável: a
+suite apaga `sessions` e `users` entre os cenários.
 
-O schema é criado por migrations do TypeORM, com `synchronize: false`.
-Após configurar um MySQL local, execute:
+Com essas variáveis configuradas no mesmo terminal, execute:
 
 ```sh
-npx typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run
+docker compose up -d mysql
+docker compose ps
+npm run migration:run
+npm run start:dev
+```
+
+Aguarde o estado `healthy` em `docker compose ps` antes da migration. O schema
+vem somente das migrations TypeORM; `synchronize` permanece `false`. Para
+reverter e recriar a migration **somente nesse banco local descartável**:
+
+```sh
+npm run migration:revert
+npm run migration:run
+```
+
+Os testes unitários não precisam do MySQL. Os E2E exigem o banco migrado e
+recusam qualquer `DB_HOST` fora de `127.0.0.1`/`localhost` ou `DB_NAME`
+diferente de `session_management_e2e`:
+
+```sh
+npm test -- --runInBand
+npm run test:e2e
 ```
 
 ## Access JWT
