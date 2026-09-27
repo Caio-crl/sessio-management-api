@@ -88,8 +88,11 @@ describe('POST /auth/login', () => {
     await app.close();
   });
 
-  it('returns 200 and only the refresh token', async () => {
-    login.mockResolvedValue({ refreshToken: 'session-id.random-secret' });
+  it('returns 200 with the access and refresh tokens', async () => {
+    login.mockResolvedValue({
+      accessToken: 'signed-access-token',
+      refreshToken: 'session-id.random-secret',
+    });
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')
@@ -97,6 +100,7 @@ describe('POST /auth/login', () => {
       .expect(200);
 
     expect(response.body).toEqual({
+      accessToken: 'signed-access-token',
       refreshToken: 'session-id.random-secret',
     });
     expect(login).toHaveBeenCalledWith({

@@ -17,3 +17,14 @@ Após configurar um MySQL local, execute:
 ```sh
 npx typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run
 ```
+
+## Access JWT
+
+Configure `JWT_ACCESS_SECRET` com pelo menos 32 bytes aleatórios, além de
+`JWT_ISSUER` e `JWT_AUDIENCE`, antes de iniciar a aplicação. O exemplo deixa o
+segredo vazio para evitar o uso acidental de uma chave publicada. O access JWT
+expira em 10 minutos.
+
+Endpoints protegidos validam o JWT sem consultar User ou Session. Revogar uma
+Session impedirá futuros refreshes, mas um access JWT já emitido continuará
+válido até sua expiração.

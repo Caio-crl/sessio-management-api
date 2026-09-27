@@ -10,6 +10,10 @@ async function bootstrap(): Promise<void> {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Session Management API')
     .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
     .build();
   SwaggerModule.setup('/v1/docs/swagger', app, () =>
     SwaggerModule.createDocument(app, swaggerConfig),

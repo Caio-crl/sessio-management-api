@@ -1,4 +1,5 @@
 import { verify } from 'argon2';
+import { JwtService } from '@nestjs/jwt';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Session } from '../sessions/entities/session.entity';
 import { User } from '../users/entities/user.entity';
@@ -17,6 +18,7 @@ describe('AuthService registration', () => {
     const service = new AuthService(
       { save } as unknown as Repository<User>,
       {} as Repository<Session>,
+      {} as JwtService,
     );
 
     const response = await service.register({
@@ -48,6 +50,7 @@ describe('AuthService registration', () => {
     const service = new AuthService(
       { save } as unknown as Repository<User>,
       {} as Repository<Session>,
+      {} as JwtService,
     );
 
     await expect(
@@ -68,6 +71,7 @@ describe('AuthService registration', () => {
     const service = new AuthService(
       { save } as unknown as Repository<User>,
       {} as Repository<Session>,
+      {} as JwtService,
     );
 
     await expect(

@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { argon2id, hash, HashOptions, verify } from 'argon2';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { QueryFailedError, Repository } from 'typeorm';
@@ -49,6 +50,7 @@ export class AuthService {
     private readonly users: Repository<User>,
     @InjectRepository(Session)
     private readonly sessions: Repository<Session>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(input: RegisterDto): Promise<RegisterResponseDto> {
@@ -120,7 +122,11 @@ export class AuthService {
         revokedAt: null,
       });
 
-      return { refreshToken: `${sessionId}.${secret}` };
+      const accessToken = await this.jwtService.signAsync({
+        sub: user.id,
+        sid: sessionId,
+      });
+      return { accessToken, refreshToken: `${sessionId}.${secret}` };
     } catch {
       throw new InternalServerErrorException('Could not complete login');
     }

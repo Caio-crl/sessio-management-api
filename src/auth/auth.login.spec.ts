@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { JwtService } from '@nestjs/jwt';
 import { argon2id, hash } from 'argon2';
 import { Repository } from 'typeorm';
 import { Session } from '../sessions/entities/session.entity';
@@ -7,6 +8,15 @@ import { AuthService } from './auth.service';
 
 describe('AuthService login', () => {
   const password = 'correct horse battery staple';
+  const jwtService = new JwtService({
+    secret: 'test-only-access-secret-with-at-least-32-characters',
+    signOptions: {
+      algorithm: 'HS256',
+      expiresIn: 600,
+      issuer: 'test-issuer',
+      audience: 'test-audience',
+    },
+  });
   let passwordHash: string;
 
   beforeAll(async () => {
@@ -37,6 +47,7 @@ describe('AuthService login', () => {
     const service = new AuthService(
       { createQueryBuilder } as unknown as Repository<User>,
       { insert } as unknown as Repository<Session>,
+      jwtService,
     );
 
     return { service, createQueryBuilder, queryBuilder, insert };
@@ -62,7 +73,28 @@ describe('AuthService login', () => {
 
     const session = insert.mock.calls[0][0] as Partial<Session>;
     const [sessionId, secret] = first.refreshToken.split('.');
-    expect(first).toEqual({ refreshToken: `${sessionId}.${secret}` });
+    expect(first.refreshToken).toBe(`${sessionId}.${secret}`);
+    const payload = jwtService.verify<Record<string, unknown>>(
+      first.accessToken,
+      {
+        algorithms: ['HS256'],
+        issuer: 'test-issuer',
+        audience: 'test-audience',
+      },
+    );
+    expect(payload.sub).toBe('47cf84d4-159a-45db-a8a2-1f31fc9c576b');
+    expect(payload.sid).toBe(sessionId);
+    expect(payload.iss).toBe('test-issuer');
+    expect(payload.aud).toBe('test-audience');
+    expect(payload.exp).toBe((payload.iat as number) + 600);
+    expect(Object.keys(payload).sort()).toEqual([
+      'aud',
+      'exp',
+      'iat',
+      'iss',
+      'sid',
+      'sub',
+    ]);
     expect(sessionId).toBe(session.id);
     expect(sessionId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,

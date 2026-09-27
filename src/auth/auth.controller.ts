@@ -1,14 +1,18 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiOperation,
@@ -16,9 +20,13 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Request } from 'express';
+import { AccessJwtGuard } from './access-jwt.guard';
+import { AuthenticatedUser } from './access-jwt.strategy';
 import { AuthService } from './auth.service';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { MeResponseDto } from './dto/me-response.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -58,5 +66,18 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(input);
+  }
+
+  @Get('me')
+  @UseGuards(AccessJwtGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Read the authenticated token identifiers' })
+  @ApiOkResponse({ type: MeResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+  me(@Req() request: Request & { user: AuthenticatedUser }): MeResponseDto {
+    return {
+      userId: request.user.userId,
+      sessionId: request.user.sessionId,
+    };
   }
 }
