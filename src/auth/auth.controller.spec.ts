@@ -66,3 +66,56 @@ describe('POST /auth/register', () => {
     expect(register).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /auth/login', () => {
+  let app: INestApplication;
+  const login = jest.fn();
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [{ provide: AuthService, useValue: { login } }],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
+    await app.init();
+  });
+
+  beforeEach(() => login.mockReset());
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('returns 200 and only the refresh token', async () => {
+    login.mockResolvedValue({ refreshToken: 'session-id.random-secret' });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: ' USER@Example.com ', password: 'p' })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      refreshToken: 'session-id.random-secret',
+    });
+    expect(login).toHaveBeenCalledWith({
+      email: 'USER@Example.com',
+      password: 'p',
+    });
+  });
+
+  it.each([
+    { email: 'invalid', password: 'password' },
+    { email: 'user@example.com', password: '' },
+    { email: 'user@example.com', password: 'x'.repeat(129) },
+    { email: 'user@example.com', password: 'password', extra: 'field' },
+  ])('rejects invalid login data', async (body) => {
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send(body)
+      .expect(400);
+
+    expect(login).not.toHaveBeenCalled();
+  });
+});

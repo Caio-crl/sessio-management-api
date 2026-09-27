@@ -1,5 +1,6 @@
 import { verify } from 'argon2';
 import { QueryFailedError, Repository } from 'typeorm';
+import { Session } from '../sessions/entities/session.entity';
 import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 
@@ -13,7 +14,10 @@ describe('AuthService registration', () => {
       id: '47cf84d4-159a-45db-a8a2-1f31fc9c576b',
       createdAt,
     }));
-    const service = new AuthService({ save } as unknown as Repository<User>);
+    const service = new AuthService(
+      { save } as unknown as Repository<User>,
+      {} as Repository<Session>,
+    );
 
     const response = await service.register({
       email: '  User+tag@Example.COM  ',
@@ -41,7 +45,10 @@ describe('AuthService registration', () => {
     const save = jest
       .fn()
       .mockRejectedValue(new QueryFailedError('INSERT', [], duplicate));
-    const service = new AuthService({ save } as unknown as Repository<User>);
+    const service = new AuthService(
+      { save } as unknown as Repository<User>,
+      {} as Repository<Session>,
+    );
 
     await expect(
       service.register({ email: 'user@example.com', password }),
@@ -58,7 +65,10 @@ describe('AuthService registration', () => {
     const save = jest
       .fn()
       .mockRejectedValue(new QueryFailedError('INSERT', [], databaseError));
-    const service = new AuthService({ save } as unknown as Repository<User>);
+    const service = new AuthService(
+      { save } as unknown as Repository<User>,
+      {} as Repository<Session>,
+    );
 
     await expect(
       service.register({ email: 'user@example.com', password }),
