@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { JwtService } from '@nestjs/jwt';
 import { EntityManager, Repository } from 'typeorm';
 import { Session } from '../sessions/entities/session.entity';
+import { SessionsService } from '../sessions/sessions.service';
 import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 
@@ -216,6 +217,20 @@ describe('AuthService refresh', () => {
     expect(missing.repository.update).not.toHaveBeenCalled();
     expect(expired.repository.update).not.toHaveBeenCalled();
     expect(revoked.repository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects refresh after the current session is logged out', async () => {
+    const { service, session, repository } = createService();
+    const sessionsService = new SessionsService(
+      repository as unknown as Repository<Session>,
+    );
+
+    await sessionsService.revokeCurrent(userId, sessionId);
+
+    expect(session.revokedAt).toBeInstanceOf(Date);
+    await expect(service.refresh({ refreshToken })).rejects.toMatchObject(
+      invalid,
+    );
   });
 
   it.each([

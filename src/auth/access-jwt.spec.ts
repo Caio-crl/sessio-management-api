@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
+import { SessionsService } from '../sessions/sessions.service';
 import { AccessJwtGuard } from './access-jwt.guard';
 import { AccessJwtStrategy } from './access-jwt.strategy';
 import { AuthController } from './auth.controller';
@@ -28,6 +29,7 @@ describe('GET /auth/me', () => {
     audience: process.env.JWT_AUDIENCE,
   };
   let app: INestApplication;
+  const revokeCurrent = jest.fn().mockResolvedValue(undefined);
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = secret;
@@ -42,6 +44,7 @@ describe('GET /auth/me', () => {
         AccessJwtGuard,
         AccessJwtStrategy,
         { provide: AuthService, useValue: {} },
+        { provide: SessionsService, useValue: { revokeCurrent } },
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -80,6 +83,31 @@ describe('GET /auth/me', () => {
       .get('/auth/me')
       .auth('not-a-jwt', { type: 'bearer' })
       .expect(401);
+  });
+
+  it('logs out only the session identified by the access JWT', async () => {
+    revokeCurrent.mockClear();
+    const token = signer.sign(claims, signOptions);
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/logout')
+      .auth(token, { type: 'bearer' })
+      .send({ sessionId: 'a338b383-325b-4e8f-99ea-ec55828a3791' })
+      .expect(204);
+
+    expect(response.text).toBe('');
+    expect(revokeCurrent).toHaveBeenCalledTimes(1);
+    expect(revokeCurrent).toHaveBeenCalledWith(userId, sessionId);
+  });
+
+  it('requires a valid access JWT for logout', async () => {
+    revokeCurrent.mockClear();
+    await request(app.getHttpServer()).post('/auth/logout').expect(401);
+    await request(app.getHttpServer())
+      .post('/auth/logout')
+      .auth('invalid', { type: 'bearer' })
+      .expect(401);
+    expect(revokeCurrent).not.toHaveBeenCalled();
   });
 
   it.each([

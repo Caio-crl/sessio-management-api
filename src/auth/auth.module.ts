@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from '../sessions/entities/session.entity';
+import { SessionsModule } from '../sessions/sessions.module';
 import { User } from '../users/entities/user.entity';
 import {
   ACCESS_TOKEN_ALGORITHM,
@@ -19,6 +20,7 @@ const { secret, issuer, audience } = getAccessTokenConfig();
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Session]),
+    SessionsModule,
     PassportModule,
     JwtModule.register({
       secret,

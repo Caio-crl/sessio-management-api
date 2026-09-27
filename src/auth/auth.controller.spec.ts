@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
+import { SessionsService } from '../sessions/sessions.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -11,7 +12,10 @@ describe('POST /auth/register', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: { register } }],
+      providers: [
+        { provide: AuthService, useValue: { register } },
+        { provide: SessionsService, useValue: {} },
+      ],
     }).compile();
 
     app = moduleRef.createNestApplication();
@@ -74,7 +78,10 @@ describe('POST /auth/login', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: { login } }],
+      providers: [
+        { provide: AuthService, useValue: { login } },
+        { provide: SessionsService, useValue: {} },
+      ],
     }).compile();
 
     app = moduleRef.createNestApplication();
@@ -131,7 +138,10 @@ describe('POST /auth/refresh', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: { refresh } }],
+      providers: [
+        { provide: AuthService, useValue: { refresh } },
+        { provide: SessionsService, useValue: {} },
+      ],
     }).compile();
 
     app = moduleRef.createNestApplication();

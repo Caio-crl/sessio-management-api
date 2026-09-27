@@ -35,3 +35,9 @@ e a expiração absoluta da Session. O token imediatamente anterior é lembrado
 apenas para detectar reuse e revogar a Session; tokens desconhecidos são
 rejeitados sem revogação. A linha da Session é bloqueada durante a rotação para
 serializar refreshes concorrentes.
+
+`POST /auth/logout` revoga somente a Session identificada pelo access JWT.
+`GET /sessions` lista as Sessions ativas do usuário, e
+`DELETE /sessions/:id` revoga uma Session própria. Essas operações exigem
+Bearer access JWT. A revogação bloqueia imediatamente novos refreshes, mas
+o access JWT já emitido permanece válido até seu TTL de 10 minutos.

@@ -15,12 +15,14 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOperation,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { SessionsService } from '../sessions/sessions.service';
 import { AccessJwtGuard } from './access-jwt.guard';
 import { AuthenticatedUser } from './access-jwt.strategy';
 import { AuthService } from './auth.service';
@@ -34,7 +36,10 @@ import { RegisterDto } from './dto/register.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionsService: SessionsService,
+  ) {}
 
   @Post('register')
   @UsePipes(
@@ -84,6 +89,20 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
   refresh(@Body() input: RefreshDto): Promise<LoginResponseDto> {
     return this.authService.refresh(input);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AccessJwtGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Revoke the current session' })
+  @ApiNoContentResponse({ description: 'Current session revoked' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+  logout(@Req() request: Request & { user: AuthenticatedUser }): Promise<void> {
+    return this.sessionsService.revokeCurrent(
+      request.user.userId,
+      request.user.sessionId,
+    );
   }
 
   @Get('me')
