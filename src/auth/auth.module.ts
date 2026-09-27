@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from '../sessions/entities/session.entity';
 import { SessionsModule } from '../sessions/sessions.module';
@@ -12,6 +13,7 @@ import {
 } from './access-token.config';
 import { AccessJwtGuard } from './access-jwt.guard';
 import { AccessJwtStrategy } from './access-jwt.strategy';
+import { AUTH_THROTTLE } from './auth-throttle.config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -22,6 +24,7 @@ const { secret, issuer, audience } = getAccessTokenConfig();
     TypeOrmModule.forFeature([User, Session]),
     SessionsModule,
     PassportModule,
+    ThrottlerModule.forRoot([AUTH_THROTTLE]),
     JwtModule.register({
       secret,
       signOptions: {
@@ -38,6 +41,6 @@ const { secret, issuer, audience } = getAccessTokenConfig();
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AccessJwtStrategy, AccessJwtGuard],
+  providers: [AuthService, AccessJwtStrategy, AccessJwtGuard, ThrottlerGuard],
 })
 export class AuthModule {}

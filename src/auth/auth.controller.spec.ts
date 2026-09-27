@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import * as request from 'supertest';
 import { SessionsService } from '../sessions/sessions.service';
 import { AuthController } from './auth.controller';
@@ -11,6 +12,7 @@ describe('POST /auth/register', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])],
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: { register } },
@@ -77,6 +79,7 @@ describe('POST /auth/login', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])],
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: { login } },
@@ -137,6 +140,7 @@ describe('POST /auth/refresh', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])],
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: { refresh } },

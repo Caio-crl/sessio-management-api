@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import * as request from 'supertest';
 import { SessionsService } from '../sessions/sessions.service';
 import { AccessJwtGuard } from './access-jwt.guard';
@@ -38,7 +39,10 @@ describe('GET /auth/me', () => {
 
     // No User or Session repository is registered in this test application.
     const moduleRef = await Test.createTestingModule({
-      imports: [PassportModule],
+      imports: [
+        PassportModule,
+        ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+      ],
       controllers: [AuthController],
       providers: [
         AccessJwtGuard,

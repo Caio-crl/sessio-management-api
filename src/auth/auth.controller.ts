@@ -19,8 +19,10 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { SessionsService } from '../sessions/sessions.service';
 import { AccessJwtGuard } from './access-jwt.guard';
@@ -42,6 +44,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @UseGuards(ThrottlerGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -53,12 +56,14 @@ export class AuthController {
   @ApiCreatedResponse({ type: RegisterResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid registration data' })
   @ApiConflictResponse({ description: 'Email is already registered' })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   register(@Body() input: RegisterDto): Promise<RegisterResponseDto> {
     return this.authService.register(input);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -70,12 +75,14 @@ export class AuthController {
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid login data' })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(input);
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -87,6 +94,7 @@ export class AuthController {
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   refresh(@Body() input: RefreshDto): Promise<LoginResponseDto> {
     return this.authService.refresh(input);
   }

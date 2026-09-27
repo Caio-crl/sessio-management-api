@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
+import { configureHttpSecurity } from '../src/http-security';
 import { Session } from '../src/sessions/entities/session.entity';
 import { User } from '../src/users/entities/user.entity';
 
@@ -23,7 +24,7 @@ type IndexInfo = {
 describe('Session Management API with local MySQL', () => {
   const password = 'E2E-only-passphrase-123';
   const email = 'e2e@example.com';
-  let app: INestApplication;
+  let app: NestExpressApplication;
   let dataSource: DataSource;
   let users: Repository<User>;
   let sessions: Repository<Session>;
@@ -88,8 +89,10 @@ describe('Session Management API with local MySQL', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
-    app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app = moduleRef.createNestApplication<NestExpressApplication>({
+      bodyParser: false,
+    });
+    configureHttpSecurity(app);
     await app.init();
     dataSource = app.get(DataSource);
     users = dataSource.getRepository(User);
@@ -103,6 +106,30 @@ describe('Session Management API with local MySQL', () => {
       await clearTestData();
     }
     await app?.close();
+  });
+
+  it('sends security headers, leaves CORS disabled and rejects oversized JSON', async () => {
+    const health = await request(app.getHttpServer())
+      .get('/health')
+      .set('Origin', 'https://example.com')
+      .expect(200);
+    expect(health.headers['x-content-type-options']).toBe('nosniff');
+    expect(health.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(health.headers['content-security-policy']).toContain(
+      "default-src 'self'",
+    );
+    expect(health.headers['access-control-allow-origin']).toBeUndefined();
+
+    const oversized = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email, password, padding: 'x'.repeat(9 * 1024) })
+      .expect(413);
+    expect(oversized.body).toEqual({
+      message: 'Request body too large',
+      error: 'Payload Too Large',
+      statusCode: 413,
+    });
+    expect(await users.count()).toBe(0);
   });
 
   it('has the migrated columns, primary keys, indexes and restrictive foreign key', async () => {

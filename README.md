@@ -64,3 +64,17 @@ serializar refreshes concorrentes.
 `DELETE /sessions/:id` revoga uma Session própria. Essas operações exigem
 Bearer access JWT. A revogação bloqueia imediatamente novos refreshes, mas
 o access JWT já emitido permanece válido até seu TTL de 10 minutos.
+
+## Proteções HTTP
+
+`POST /auth/register`, `POST /auth/login` e `POST /auth/refresh` aceitam até
+20 requests por minuto, por IP e por endpoint. O contador do `@nestjs/throttler`
+fica em memória: reiniciar a aplicação o zera e várias instâncias não
+compartilham limites. O MVP não confia automaticamente em headers de proxy
+para identificar o IP do cliente.
+
+Helmet adiciona headers de segurança. Corpos JSON e URL encoded são limitados
+a 8 KiB; entradas maiores recebem 413. O `ValidationPipe` global rejeita
+campos extras e transforma DTOs. CORS permanece desabilitado, pois não há
+frontend no MVP. Swagger fica disponível em `/v1/docs/swagger` quando
+`NODE_ENV` não é `production`.
