@@ -123,3 +123,69 @@ describe('POST /auth/login', () => {
     expect(login).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /auth/refresh', () => {
+  let app: INestApplication;
+  const refresh = jest.fn();
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [{ provide: AuthService, useValue: { refresh } }],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    await app.init();
+  });
+
+  beforeEach(() => refresh.mockReset());
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('returns 200 with the rotated tokens', async () => {
+    refresh.mockResolvedValue({
+      accessToken: 'signed-access-token',
+      refreshToken: 'session-id.new-secret',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: 'session-id.old-secret' })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      accessToken: 'signed-access-token',
+      refreshToken: 'session-id.new-secret',
+    });
+    expect(refresh).toHaveBeenCalledWith({
+      refreshToken: 'session-id.old-secret',
+    });
+  });
+
+  it.each([
+    {},
+    { refreshToken: 123 },
+    { refreshToken: '' },
+    {
+      refreshToken: 'token',
+      extra: 'field',
+    },
+  ])('rejects an invalid request body', async (body) => {
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send(body)
+      .expect(400);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('does not accept a refresh token from the query string', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .query({ refreshToken: 'session-id.secret' })
+      .send({})
+      .expect(400);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});

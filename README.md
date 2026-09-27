@@ -28,3 +28,10 @@ expira em 10 minutos.
 Endpoints protegidos validam o JWT sem consultar User ou Session. Revogar uma
 Session impedirá futuros refreshes, mas um access JWT já emitido continuará
 válido até sua expiração.
+
+`POST /auth/refresh` recebe `{ "refreshToken": "<sessionId>.<secret>" }` e
+retorna novos access e refresh tokens. Cada rotação mantém o mesmo `sessionId`
+e a expiração absoluta da Session. O token imediatamente anterior é lembrado
+apenas para detectar reuse e revogar a Session; tokens desconhecidos são
+rejeitados sem revogação. A linha da Session é bloqueada durante a rotação para
+serializar refreshes concorrentes.

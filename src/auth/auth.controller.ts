@@ -27,6 +27,7 @@ import { AuthService } from './auth.service';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { MeResponseDto } from './dto/me-response.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -66,6 +67,23 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(input);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
+  @ApiOperation({ summary: 'Rotate a refresh token' })
+  @ApiOkResponse({ type: LoginResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiUnauthorizedResponse({ description: 'Invalid refresh token' })
+  refresh(@Body() input: RefreshDto): Promise<LoginResponseDto> {
+    return this.authService.refresh(input);
   }
 
   @Get('me')
